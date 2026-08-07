@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="description" content="XClipGS: Exact Half-Space Clipping for Medical Volume Gaussian Splatting">
+  <meta property="og:title" content="XClipGS" />
+  <meta property="og:description" content="XClipGS: Exact Half-Space Clipping for Medical Volume Gaussian Splatting" />
+  <meta property="og:url" content="https://gaozhongpai.github.io/XClipGS/" />
+  <meta property="og:image" content="static/images/xclipgs.webp" />
+  <meta property="og:image:width" content="512" />
+  <meta property="og:image:height" content="512" />
+
+  <meta name="twitter:title" content="XClipGS">
+  <meta name="twitter:description" content="Exact Half-Space Clipping for Medical Volume Gaussian Splatting">
+  <meta name="twitter:image" content="static/images/xclipgs.webp">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="keywords" content="XClipGS, Gaussian Splatting, clipping plane, medical visualization, volume rendering, CT, MRI">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>XClipGS: Exact Half-Space Clipping for Medical Volume Gaussian Splatting</title>
+  <link rel="icon" type="image/webp" href="static/images/xclipgs.webp">
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Bulma -->
+  <link rel="stylesheet" href="static/css/bulma.min.css">
+  <link rel="stylesheet" href="static/css/bulma-carousel.min.css">
+  <link rel="stylesheet" href="static/css/bulma-slider.min.css">
+  <link rel="stylesheet" href="static/css/index.css">
+
+  <!-- jQuery and JS -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script src="static/js/bulma-carousel.min.js"></script>
+  <script src="static/js/bulma-slider.min.js"></script>
+  <script src="static/js/index.js"></script>
+
+  <!-- NDSplat theme (loaded last so it wins the cascade) -->
+  <link rel="stylesheet" href="static/css/ndsplat-theme.css">
+  <script defer src="static/js/ndsplat-nav.js"></script>
+
+  <style>
+    /* XClipGS-specific accents on top of the NDSplat theme */
+    .xc-video-cols video{width:100%;border-radius:12px;box-shadow:0 12px 32px -14px rgba(10,14,25,.45)}
+    .xc-video-cols .vlabel{margin-top:.55rem;font-weight:650;font-size:1.02rem}
+    .xc-video-cols .vlabel small{display:block;font-weight:400;color:#7a8499;font-size:.85rem;margin-top:.15rem}
+    .xc-op-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:1.2rem}
+    @media (max-width:768px){.xc-op-grid{grid-template-columns:1fr}}
+    .xc-op{border:1px solid #e3e7f0;border-radius:14px;padding:16px 18px;background:#fff}
+    .xc-op h4{margin:0 0 .35rem;font-size:1.0rem;font-weight:700}
+    .xc-op p{margin:0;font-size:.9rem;color:#5a6478;line-height:1.5}
+    .xc-op.is-ours{border-color:#3273dc;box-shadow:0 10px 26px -16px rgba(50,115,220,.55)}
+    .xc-op .tag-line{font-family:"JetBrains Mono",monospace;font-size:.72rem;letter-spacing:.06em;
+      text-transform:uppercase;color:#8a93a8;margin-bottom:.45rem}
+    .xc-op.is-ours .tag-line{color:#3273dc}
+    .xc-demo-cta{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:18px;
+      border:1px solid #dbe3f5;border-radius:16px;padding:22px 26px;
+      background:linear-gradient(120deg,#f5f8ff,#eef6fb)}
+    .xc-demo-cta h3{margin:0 0 .3rem;font-size:1.25rem}
+    .xc-demo-cta p{margin:0;color:#5a6478;font-size:.95rem;max-width:56ch}
+    .xc-note{color:#7a8499;font-size:.85rem;margin-top:.8rem}
+  </style>
+</head>
+
+<body>
+
+  <!-- ============ NDSplat NAV ============ -->
+  <header class="nd-nav" id="ndNav">
+    <div class="nd-nav-inner">
+      <a class="nd-brand" href="https://gaozhongpai.github.io/ndsplat/"><span class="mk">ND</span>Splat</a>
+      <nav class="nd-nav-links">
+        <a href="https://gaozhongpai.github.io/6dgs/">6DGS</a>
+        <a href="https://gaozhongpai.github.io/7dgs/">7DGS</a>
+        <a href="https://rongliu-leo.github.io/universal-beta-splatting/">UBS</a>
+        <a href="https://gaozhongpai.github.io/ndsplat/">dGS / dBS</a>
+        <a href="https://gaozhongpai.github.io/renderfm/">Render-FM</a>
+        <a href="https://gaozhongpai.github.io/XClipGS/" class="current">XClipGS</a>
+      </nav>
+      <button class="nd-nav-toggle" id="ndNavToggle" aria-label="Toggle navigation">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <section class="hero nd-hero">
+    <div class="nd-hero-bg" aria-hidden="true"></div>
+    <div class="hero-body">
+      <div class="container is-max-desktop">
+        <div class="columns is-centered">
+          <div class="column has-text-centered">
+            <span class="nd-venue"><span class="dot"></span>Under Review</span>
+            <h1 class="title is-1 publication-title">XClipGS: Exact Half-Space Clipping for Medical Volume Gaussian Splatting</h1>
+            <div class="is-size-5 publication-authors">
+              <!-- TODO(author-list): confirm final author list & order before publishing -->
+              <span class="author-block">
+                <a href="https://sites.google.com/site/gaozhongpai/home" target="_blank">Zhongpai Gao</a>,</span>
+              <span class="author-block">
+                <a href="https://planche.me/" target="_blank">Benjamin Planche</a>,</span>
+              <span class="author-block">
+                <a href="https://mzhengrpi.github.io/" target="_blank">Meng Zheng</a>,
+              </span>
+              <span class="author-block">
+                <a href="https://scholar.google.com/citations?user=KQnKUHKGFdUC&hl=en" target="_blank">Anwesa Choudhuri</a>,
+              </span>
+              <span class="author-block">
+                <a href="https://scholar.google.com/citations?user=S2BT6ogAAAAJ&hl=en" target="_blank">Terrence Chen</a>,
+              </span>
+              <span class="author-block">
+                <a href="https://wuziyan.com/" target="_blank">Ziyan Wu</a>
+              </span>
+            </div>
+
+            <div class="is-size-5 publication-authors">
+              <span class="author-block">United Imaging Intelligence, Boston MA, USA</span>
+              <span class="eql-cntrb"><small><br>{first.last}@uii-ai.com</small></span>
+            </div>
+
+            <div class="column has-text-centered">
+              <div class="publication-links">
+                <!-- Paper PDF -->
+                <span class="link-block">
+                  <a href="static/pdfs/xclipgs.pdf" target="_blank"
+                    class="external-link button is-normal is-rounded is-dark">
+                    <span class="icon">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512" width="1em" height="1em" fill="currentColor" aria-hidden="true"><path d="M224 136V0H24C10.7 0 0 10.7 0 24v464c0 13.3 10.7 24 24 24h336c13.3 0 24-10.7 24-24V160H248c-13.2 0-24-10.8-24-24zm76.45 211.36l-96.42 95.7c-6.65 6.61-17.39 6.61-24.04 0l-96.42-95.7C73.42 337.29 80.54 320 94.82 320H160v-80c0-8.84 7.16-16 16-16h32c8.84 0 16 7.16 16 16v80h65.18c14.28 0 21.4 17.29 10.27 27.36zM377 105L279.1 7c-4.5-4.5-10.6-7-17-7H256v128h128v-6.1c0-6.3-2.5-12.4-7-16.9z"/></svg>
+                    </span>
+                    <span>Paper</span>
+                  </a>
+                </span>
+
+                <!-- arXiv (enable once posted) -->
+                <span class="link-block">
+                  <a href="#" onclick="return false" title="arXiv preprint coming soon"
+                    class="external-link button is-normal is-rounded is-dark" style="opacity:.55;cursor:default">
+                    <span class="icon">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden="true"><path d="M3.8423 0a1.0037 1.0037 0 0 0-.922.6078c-.1536.3687-.0438.6275.2938 1.1113l6.9185 8.3597-1.0223 1.1058a1.0393 1.0393 0 0 0 .003 1.4229l1.2292 1.3135-5.4391 6.4444c-.2803.299-.4538.823-.2971 1.1986a1.0253 1.0253 0 0 0 .9585.635.9133.9133 0 0 0 .6891-.3405l5.783-6.126 7.4902 8.0051a.8527.8527 0 0 0 .6835.2597.9575.9575 0 0 0 .8777-.6138c.1577-.377-.017-.7502-.306-1.1407l-7.0518-8.3418 1.0632-1.13a.9626.9626 0 0 0 .0089-1.3165L4.6336.4639s-.3733-.4535-.768-.463zm0 .272h.0166c.2179.0052.4874.2715.5644.3639l.005.006.0052.0055 10.169 10.9905a.6915.6915 0 0 1-.0072.945l-1.0666 1.133-1.4982-1.7724-8.5994-10.39c-.3286-.472-.352-.6183-.2592-.841a.7307.7307 0 0 1 .6704-.4401Zm14.341 1.5701a.877.877 0 0 0-.6554.2418l-5.6962 6.1584 1.6944 1.8319 5.3089-6.5138c.3251-.4335.479-.6603.3247-1.0292a1.1205 1.1205 0 0 0-.9763-.689zm-7.6557 12.2823 1.3186 1.4135-5.7864 6.1295a.6494.6494 0 0 1-.4959.26.7516.7516 0 0 1-.706-.4669c-.1119-.2682.0359-.6864.2442-.9083l.0051-.0055.0047-.0055z"/></svg>
+                    </span>
+                    <span>arXiv (soon)</span>
+                  </a>
+                </span>
+
+                <!-- Interactive demo -->
+                <span class="link-block">
+                  <a href="demo/" target="_blank"
+                    class="external-link button is-normal is-rounded is-dark">
+                    <span class="icon">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="1em" height="1em" fill="currentColor" aria-hidden="true"><path d="M371.7 238l-176-107c-15.8-8.8-35.7 2.5-35.7 21v208c0 18.4 19.8 29.8 35.7 21l176-101c16.4-9.1 16.4-32.8 0-42zM504 256C504 119 393 8 256 8S8 119 8 256s111 248 248 248 248-111 248-248zm-448 0c0-110.5 89.5-200 200-200s200 89.5 200 200-89.5 200-200 200S56 366.5 56 256z"/></svg>
+                    </span>
+                    <span>Live Demo</span>
+                  </a>
+                </span>
+
+                <!-- Github -->
+                <span class="link-block">
+                  <a href="https://github.com/Gaozhongpai/XClipGS" target="_blank"
+                    class="external-link button is-normal is-rounded is-dark">
+                    <span class="icon">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512" width="1em" height="1em" fill="currentColor" aria-hidden="true"><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8z"/></svg>
+                    </span>
+                    <span>Code</span>
+                  </a>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STAT STRIP ============ -->
+  <div class="nd-stats">
+    <div class="nd-stat"><div class="num">0.000</div><div class="lbl">Wrong-side mass (exact clip)</div></div>
+    <div class="nd-stat"><div class="num">40&times;</div><div class="lbl">Less leakage vs. ClipGS</div></div>
+    <div class="nd-stat"><div class="num">655 FPS</div><div class="lbl">At 1600&times;1600 (A100)</div></div>
+  </div>
+
+  <!-- Teaser image -->
+  <section class="hero teaser nd-reveal">
+    <div class="container is-max-desktop">
+      <div class="hero-body">
+        <img src="static/images/teaser.jpg" alt="XClipGS teaser: our result, the volume-rendering reference, and ClipGS on an unseen cut" style="height:100%;width:100%;">
+        <h2 class="subtitle has-text-centered">
+          Interactive clipping on a held-out cut: <b>XClipGS (left)</b> matches the path-traced reference (middle)
+          with a sharp, artifact-free cut face at 597&nbsp;FPS, while ClipGS (right) leaks material past the plane
+          and runs 2.7&times; slower.
+        </h2>
+      </div>
+    </div>
+  </section>
+  <!-- End teaser image -->
+
+  <!-- Paper abstract -->
+  <section class="section hero is-light nd-reveal">
+    <div class="container is-max-desktop">
+      <div class="columns is-centered has-text-centered">
+        <div class="column is-four-fifths">
+          <h2 class="title is-3">Abstract</h2>
+          <div class="content has-text-justified">
+            <p>
+              Gaussian-splatting proxies enable interactive rendering of volumetric medical scans, but a clipping
+              plane exposes anatomy not constrained by external-view training and intersects primitives that
+              conventional splatting can only keep or drop whole. We present <b>XClipGS</b> (<i>eXact Clipping</i>),
+              which treats these as two separate problems: the render-time clip operator and supervision of the
+              hidden interior. Under the local affine model used by EWA splatting, each half-space-restricted
+              Gaussian's ray integral factorizes exactly into its ordinary 2D footprint and a conditional Gaussian
+              CDF whose argument is affine in pixel coordinates. The resulting closed-form per-splat operator
+              introduces no learned clipping parameters or auxiliary network and remains differentiable with respect
+              to the primitive and plane. We use multi-distance reference views with varied clipping-plane axes and
+              offsets to supervise the interior through the same operator. We also introduce a paired
+              clipped/unclipped cut-face protocol with difference-referenced cut error (CDE) and culled-side leakage
+              (Leak), because global image metrics dilute errors near the plane. On eight CT and MRI volumes with
+              plane offsets not used for training, XClipGS attains the highest PSNR on every volume (33.56 versus
+              32.34&nbsp;dB for ClipGS) while rendering at over 650&nbsp;FPS, far above real time, versus
+              278&nbsp;FPS. On voxel-axis cut-face views it raises average band SSIM from 0.809 to 0.860 and leaks
+              roughly 40&times; less. Without retraining, it also achieves the best average across all four metrics
+              on arbitrary-normal planes; on a fixed interior it matches RaRa's face fidelity with about 16&times;
+              less leakage.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <!-- End paper abstract -->
+
+  <!-- Method -->
+  <section class="section nd-reveal">
+    <div class="container is-max-desktop">
+      <div class="columns is-centered">
+        <div class="column is-full-width">
+          <h2 class="title is-3 has-text-centered">How It Works</h2>
+          <img src="static/images/pipeline.png" alt="XClipGS pipeline" style="width:100%;">
+          <div class="content has-text-justified" style="margin-top:1rem;">
+            <p>
+              XClipGS combines an <b>exact per-splat render-time clipping operator</b> with <b>clip-aware
+              supervision</b> that learns the hidden interior. Conditioning the jointly Gaussian screen and clip
+              coordinates on the pixel factorizes each straddling primitive's truncated ray integral into its
+              unclipped EWA footprint times a Gaussian CDF <span style="font-family:'JetBrains Mono',monospace;">
+              &Phi;(k&#8319;&delta;&nbsp;+&nbsp;h)</span> &mdash; three transient coefficients per primitive and
+              view, no learned parameters. The same differentiable rule supervises the interior from multi-distance
+              clipped reference views with varied plane axes and offsets, so one checkpoint supports arbitrary
+              voxel-axis or oblique cuts at render time without retraining.
+            </p>
+          </div>
+
+          <div class="xc-op-grid">
+            <div class="xc-op is-ours">
+              <div class="tag-line">Ours &mdash; analytic</div>
+              <h4>Exact half-space integral</h4>
+              <p>Renders the truncated density itself: footprint &times; conditional CDF. Sharp cut face, zero
+                 wrong-side mass by construction, hard-cull speed, and exact gradients through the cut.</p>
+            </div>
+            <div class="xc-op">
+              <div class="tag-line">MM &mdash; surrogate</div>
+              <h4>Moment-matched truncation</h4>
+              <p>Replaces each straddling splat by the best-fitting Gaussian. Smooth and trainable, but
+                 re-Gaussianization restores unbounded support &mdash; a soft tail still leaks past the plane.</p>
+            </div>
+            <div class="xc-op">
+              <div class="tag-line">HC &mdash; binary</div>
+              <h4>Hard per-splat cull</h4>
+              <p>Keeps or drops whole primitives (the ClipGS decision class). Center-quantized boundary that
+                 overshoots, leaves holes, and pops as the plane sweeps; no gradient through the cut.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Video comparison -->
+  <section class="section hero is-light nd-reveal">
+    <div class="container is-max-desktop">
+      <h2 class="title is-3 has-text-centered">Sweeping a Plane Through a Held-Out Volume</h2>
+      <p class="content has-text-centered" style="color:#5a6478;">
+        Same scan (<code>intestine</code>, CT), same trained-checkpoint protocol, live screen recordings.
+        Watch the culled side of the plane: XClipGS keeps it empty; ClipGS leaks and flickers.
+      </p>
+      <div class="columns is-centered xc-video-cols">
+        <div class="column is-half has-text-centered">
+          <video autoplay controls muted loop playsinline preload="metadata" poster="static/videos/XClipGS_poster.jpg">
+            <source src="static/videos/XClipGS.mp4" type="video/mp4">
+          </video>
+          <div class="vlabel">XClipGS (Ours)
+            <small>Sharp, stable cut face &mdash; leakage 0.16&times;10<sup>&minus;2</sup></small>
+          </div>
+        </div>
+        <div class="column is-half has-text-centered">
+          <video autoplay controls muted loop playsinline preload="metadata" poster="static/videos/ClipGS_poster.jpg">
+            <source src="static/videos/ClipGS.mp4" type="video/mp4">
+          </video>
+          <div class="vlabel">ClipGS (reimplementation)
+            <small>Material leaks past the plane &mdash; leakage 12.68&times;10<sup>&minus;2</sup> (79&times; more)</small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive demo CTA -->
+  <section class="section nd-reveal">
+    <div class="container is-max-desktop">
+      <div class="xc-demo-cta">
+        <div>
+          <h3>Try the clip operators live in your browser</h3>
+          <p>A WebGL Gaussian-splatting scene with a movable plane: switch among Ours / MM / HC at render time and
+             watch hard-cull popping, the moment-matched tail, and the analytic boundary. Runs fully client-side;
+             drag &amp; drop your own <code>.ply</code>.</p>
+        </div>
+        <a href="demo/" target="_blank" class="button is-link is-medium is-rounded">Launch demo &rarr;</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Quantitative results -->
+  <section class="section hero is-light nd-reveal">
+    <div class="container is-max-desktop">
+      <div class="columns is-centered">
+        <div class="column is-full-width has-text-centered">
+          <h2 class="title is-3">Quantitative Results</h2>
+          <p class="content has-text-centered" style="color:#5a6478;">
+            Eight clinical CT/MRI volumes, plane offsets held out from training. MM and HC share our backbone and
+            supervision, isolating the operator; ClipGS is the system-level baseline.
+          </p>
+
+          <div class="rfm-table-wrap">
+            <table class="rfm-metrics">
+              <thead>
+                <tr><th>Method</th><th>PSNR&uarr;</th><th>SSIM&uarr;</th><th>LPIPS&darr;</th><th>FPS&uarr;</th></tr>
+              </thead>
+              <tbody>
+                <tr class="rfm-ours"><td>XClipGS (Ours)</td><td class="best">33.56</td><td class="best">.960</td><td class="best">.075</td><td>655</td></tr>
+                <tr><td>ClipGS (reimpl.)</td><td>32.34</td><td>.954</td><td>.081</td><td>278</td></tr>
+                <tr><td>MM (moment-matched)</td><td>33.29</td><td>.959</td><td>.075</td><td>631</td></tr>
+                <tr><td>HC (hard cull)</td><td>33.14</td><td>.957</td><td>.077</td><td class="best">658</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p class="content has-text-centered" style="color:#5a6478;margin-top:2rem;">
+            Cut-face metrics score the plane where global metrics are nearly blind. XClipGS has the best average on
+            all four metrics for both plane sets &mdash; including <b>arbitrary-normal planes without retraining</b>.
+          </p>
+
+          <div class="rfm-table-wrap">
+            <table class="rfm-metrics">
+              <thead>
+                <tr>
+                  <th>Plane set</th><th>Method</th>
+                  <th>band SSIM&uarr;</th><th>CDE<sub>g</sub>&darr;</th><th>CDE<sub>p</sub>&darr;</th><th>Leak&darr;</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="rfm-ours"><td rowspan="4"><b>Voxel-axis</b><br><small>held-out offsets</small></td>
+                    <td>XClipGS (Ours)</td><td class="best">.860</td><td class="best">22.7</td><td class="best">17.9</td><td class="best">0.40</td></tr>
+                <tr><td>ClipGS (reimpl.)</td><td>.809</td><td>33.4</td><td>19.5</td><td>16.42</td></tr>
+                <tr><td>MM</td><td>.853</td><td>23.6</td><td>18.4</td><td>6.18</td></tr>
+                <tr><td>HC</td><td>.819</td><td>29.4</td><td>18.5</td><td>12.54</td></tr>
+
+                <tr class="rfm-ours"><td rowspan="4"><b>Arbitrary-normal</b><br><small>no retraining</small></td>
+                    <td>XClipGS (Ours)</td><td class="best">.874</td><td class="best">23.5</td><td class="best">14.3</td><td class="best">0.13</td></tr>
+                <tr><td>ClipGS (reimpl.)</td><td>.844</td><td>35.9</td><td>15.7</td><td>17.24</td></tr>
+                <tr><td>MM</td><td>.870</td><td>25.5</td><td>15.1</td><td>5.67</td></tr>
+                <tr><td>HC</td><td>.842</td><td>35.9</td><td>14.9</td><td>18.30</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="xc-note">
+            CDE = difference-referenced cut error at the grazing edge (g) / over the exposed face (p);
+            Leak = culled-side leaked energy. Errors and Leak are &times;10<sup>&minus;2</sup>; bold = best per block.
+            On a fixed interior, swapping only the render-time rule, XClipGS also beats RaRa Clipper with
+            ~16&times; less leakage (see paper, Table&nbsp;3).
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Qualitative -->
+  <section class="section nd-reveal">
+    <div class="container is-max-desktop">
+      <h2 class="title is-3 has-text-centered">Qualitative Comparison</h2>
+      <img src="static/images/qualitative.jpg" alt="Qualitative comparison on held-out clipping planes" style="width:100%;">
+      <p class="content has-text-justified" style="color:#5a6478;margin-top:.8rem;">
+        Held-out clipping planes; matched cameras and crops (the middle row is an unseen arbitrary-normal grazing
+        view). XClipGS preserves cut-face structure and contrast while avoiding the diffuse or jagged boundaries of
+        the approximate operators; per-crop SSIM/PSNR shown beneath each patch.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ RELATED WORK (cross-reference network) ============ -->
+  <section class="section nd-related nd-reveal">
+    <div class="container is-max-desktop">
+      <h2 class="title is-3 has-text-centered" style="margin-bottom: 2rem;">The N-Dimensional Splatting Line</h2>
+      <div class="nd-related-grid">
+        <a class="nd-rel" href="https://gaozhongpai.github.io/6dgs/">
+          <span class="nd-rel-venue">ICLR 2025</span>
+          <span class="nd-rel-name">6DGS</span>
+          <span class="nd-rel-desc">Direction-aware 6D Gaussians for view-dependent volumetric rendering.</span>
+        </a>
+        <a class="nd-rel" href="https://gaozhongpai.github.io/7dgs/">
+          <span class="nd-rel-venue">ICCV 2025</span>
+          <span class="nd-rel-name">7DGS</span>
+          <span class="nd-rel-desc">Unified spatial-temporal-angular Gaussians for dynamic, view-dependent scenes.</span>
+        </a>
+        <a class="nd-rel" href="https://rongliu-leo.github.io/universal-beta-splatting/">
+          <span class="nd-rel-venue">ICLR 2026</span>
+          <span class="nd-rel-name">UBS</span>
+          <span class="nd-rel-desc">Universal Beta Splatting: anisotropic Beta kernels across space, angle, and time.</span>
+        </a>
+        <a class="nd-rel" href="https://gaozhongpai.github.io/ndsplat/">
+          <span class="nd-rel-venue">Latest</span>
+          <span class="nd-rel-name"><em class="tight">d</em>GS / <em class="tight">d</em>BS</span>
+          <span class="nd-rel-desc">Direct conditional parameterization &mdash; kernel-agnostic, up to 7.7&times; faster slicing.</span>
+        </a>
+        <a class="nd-rel" href="https://gaozhongpai.github.io/renderfm/">
+          <span class="nd-rel-venue">ECCV 2026</span>
+          <span class="nd-rel-name">Render-FM</span>
+          <span class="nd-rel-desc">Feedforward 6DGS for medical CT &mdash; 500&times; faster than per-scan optimization.</span>
+        </a>
+        <a class="nd-rel is-self">
+          <span class="nd-rel-venue">Under review</span>
+          <span class="nd-rel-name">XClipGS</span>
+          <span class="nd-rel-desc">Exact, training-free half-space clipping with clip-aware interior supervision.</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!--BibTex citation -->
+  <section class="section" id="BibTeX">
+    <div class="container is-max-desktop content">
+      <h2 class="title">BibTeX</h2>
+      <pre><code>@misc{xclipgs2026,
+        title={XClipGS: Exact Half-Space Clipping for Medical Volume Gaussian Splatting},
+        author={Anonymous},
+        year={2026},
+        note={Under review},
+  }</code></pre>
+    </div>
+  </section>
+  <!--End BibTex citation -->
+
+
+  <footer class="footer">
+    <div class="container">
+      <div class="columns is-centered">
+        <div class="column is-8">
+          <div class="content">
+            <p>
+              This page was built using the <a href="https://github.com/eliahuhorwitz/Academic-project-page-template"
+                target="_blank">Academic Project Page Template</a> which was adopted from the <a
+                href="https://nerfies.github.io" target="_blank">Nerfies</a> project page. This website is licensed under a <a rel="license"
+                href="http://creativecommons.org/licenses/by-sa/4.0/" target="_blank">Creative
+                Commons Attribution-ShareAlike 4.0 International License</a>.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+</body>
+
+</html>
