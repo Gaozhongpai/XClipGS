@@ -34,8 +34,7 @@ What to look for, matching the paper's claims:
     on the culled side, from any viewing angle.
 
 A procedural Gaussian scene is generated in-browser so the page works with no
-assets. You can drag a .ply / .compressed.ply onto the canvas to view another
-Gaussian scene.
+assets.
 
 
 Scope and honest caveats

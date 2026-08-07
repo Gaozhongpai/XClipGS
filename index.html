@@ -63,6 +63,8 @@
     .xc-demo-cta h3{margin:0 0 .3rem;font-size:1.25rem}
     .xc-demo-cta p{margin:0;color:#5a6478;font-size:.95rem;max-width:56ch}
     .xc-note{color:#7a8499;font-size:.85rem;margin-top:.8rem}
+    /* strong divider between plane-set blocks in the cut-face table */
+    .rfm-metrics tr.xc-block td{border-top:3px solid #11131e}
   </style>
 </head>
 
@@ -299,8 +301,8 @@
         <div>
           <h3>Try the clip operators live in your browser</h3>
           <p>A WebGL Gaussian-splatting scene with a movable plane: switch among Ours / MM / HC at render time and
-             watch hard-cull popping, the moment-matched tail, and the analytic boundary. Runs fully client-side;
-             drag &amp; drop your own <code>.ply</code>.</p>
+             watch hard-cull popping, the moment-matched tail, and the analytic boundary. Runs fully client-side
+             in your browser.</p>
         </div>
         <a href="demo/" target="_blank" class="button is-link is-medium is-rounded">Launch demo &rarr;</a>
       </div>
@@ -352,7 +354,7 @@
                 <tr><td>MM</td><td>.853</td><td>23.6</td><td>18.4</td><td>6.18</td></tr>
                 <tr><td>HC</td><td>.819</td><td>29.4</td><td>18.5</td><td>12.54</td></tr>
 
-                <tr class="rfm-ours"><td rowspan="4"><b>Arbitrary-normal</b><br><small>no retraining</small></td>
+                <tr class="rfm-ours xc-block"><td rowspan="4"><b>Arbitrary-normal</b><br><small>no retraining</small></td>
                     <td>XClipGS (Ours)</td><td class="best">.874</td><td class="best">23.5</td><td class="best">14.3</td><td class="best">0.13</td></tr>
                 <tr><td>ClipGS (reimpl.)</td><td>.844</td><td>35.9</td><td>15.7</td><td>17.24</td></tr>
                 <tr><td>MM</td><td>.870</td><td>25.5</td><td>15.1</td><td>5.67</td></tr>
