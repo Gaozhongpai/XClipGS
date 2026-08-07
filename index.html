@@ -107,7 +107,8 @@
               <span class="author-block">
                 <a href="https://scholar.google.com/citations?user=KQnKUHKGFdUC&hl=en" target="_blank">Anwesa Choudhuri</a><sup>1</sup>,
               </span>
-              <span class="author-block">Chaoyi Zhou<sup>1,2</sup>,</span>
+              <span class="author-block">
+                <a href="https://chaoyizh.github.io/chaoyizh-home-page/" target="_blank">Chaoyi Zhou</a><sup>1,2</sup>,</span>
               <span class="author-block">
                 <a href="https://scholar.google.com/citations?user=S2BT6ogAAAAJ&hl=en" target="_blank">Terrence Chen</a><sup>1</sup>,
               </span>
@@ -177,9 +178,8 @@
       <div class="hero-body">
         <img src="static/images/teaser.jpg" alt="XClipGS teaser: our result, the volume-rendering reference, and ClipGS on an unseen cut" style="height:100%;width:100%;">
         <h2 class="subtitle has-text-centered">
-          Interactive clipping on a held-out cut: <b>XClipGS (left)</b> matches the path-traced reference (middle)
-          with a sharp, artifact-free cut face at 597&nbsp;FPS, while ClipGS (right) leaks material past the plane
-          and runs 2.7&times; slower.
+          A held-out cut: <b>XClipGS (left)</b> matches the path-traced reference (middle) with a sharp cut face
+          at 597&nbsp;FPS; ClipGS (right) leaks past the plane and runs 2.7&times; slower.
         </h2>
       </div>
     </div>
@@ -196,22 +196,23 @@
             <p>
               Gaussian-splatting proxies enable interactive rendering of volumetric medical scans, but a clipping
               plane exposes anatomy not constrained by external-view training and intersects primitives that
-              conventional splatting can only keep or drop whole. We present <b>XClipGS</b> (<i>eXact Clipping</i>),
-              which treats these as two separate problems: the render-time clip operator and supervision of the
-              hidden interior. Under the local affine model used by EWA splatting, each half-space-restricted
-              Gaussian's ray integral factorizes exactly into its ordinary 2D footprint and a conditional Gaussian
-              CDF whose argument is affine in pixel coordinates. The resulting closed-form per-splat operator
-              introduces no learned clipping parameters or auxiliary network and remains differentiable with respect
-              to the primitive and plane. We use multi-distance reference views with varied clipping-plane axes and
-              offsets to supervise the interior through the same operator. We also introduce a paired
-              clipped/unclipped cut-face protocol with difference-referenced cut error (CDE) and culled-side leakage
-              (Leak), because global image metrics dilute errors near the plane. On eight CT and MRI volumes with
-              plane offsets not used for training, XClipGS attains the highest PSNR on every volume (33.56 versus
-              32.34&nbsp;dB for ClipGS) while rendering at over 650&nbsp;FPS, far above real time, versus
-              278&nbsp;FPS. On voxel-axis cut-face views it raises average band SSIM from 0.809 to 0.860 and leaks
-              roughly 40&times; less. Without retraining, it also achieves the best average across all four metrics
-              on arbitrary-normal planes; on a fixed interior it matches RaRa's face fidelity with about 16&times;
-              less leakage.
+              conventional splatting can only keep or drop whole. <b>XClipGS</b> (<i>eXact Clipping</i>) treats
+              these as two separate problems: the render-time clip operator and supervision of the hidden interior.
+            </p>
+            <p>
+              Under the affine EWA model, each half-space-restricted Gaussian's ray integral factorizes exactly
+              into its ordinary 2D footprint and a conditional Gaussian CDF whose argument is affine in pixel
+              coordinates &mdash; a closed-form, differentiable per-splat operator with no learned clipping
+              parameters or auxiliary network. The same operator supervises the interior from multi-distance
+              reference views with varied plane axes and offsets, and a paired clipped/unclipped protocol scores
+              the cut face where global image metrics are nearly blind.
+            </p>
+            <p>
+              On eight CT and MRI volumes with held-out planes, XClipGS attains the highest PSNR on every volume
+              (33.56 vs. 32.34&nbsp;dB for ClipGS) at over 650&nbsp;FPS (vs. 278), raises average band SSIM from
+              0.809 to 0.860, and leaks roughly 41&times; less. It stays best on all four cut-face metrics for
+              arbitrary-normal planes without retraining, and on a fixed interior it matches RaRa's face fidelity
+              with about 16&times; less leakage.
             </p>
           </div>
         </div>
@@ -229,14 +230,12 @@
           <img src="static/images/pipeline.png" alt="XClipGS pipeline" style="width:100%;">
           <div class="content has-text-justified" style="margin-top:1rem;">
             <p>
-              XClipGS combines an <b>exact per-splat render-time clipping operator</b> with <b>clip-aware
-              supervision</b> that learns the hidden interior. Conditioning the jointly Gaussian screen and clip
-              coordinates on the pixel factorizes each straddling primitive's truncated ray integral into its
-              unclipped EWA footprint times a Gaussian CDF <span style="font-family:'JetBrains Mono',monospace;">
-              &Phi;(k&#8319;&delta;&nbsp;+&nbsp;h)</span> &mdash; three transient coefficients per primitive and
-              view, no learned parameters. The same differentiable rule supervises the interior from multi-distance
-              clipped reference views with varied plane axes and offsets, so one checkpoint supports arbitrary
-              voxel-axis or oblique cuts at render time without retraining.
+              An <b>exact per-splat clip</b> plus <b>clip-aware supervision</b>. Conditioning the jointly Gaussian
+              screen and clip coordinates on the pixel turns each straddling primitive's truncated ray integral
+              into its unclipped EWA footprint times a Gaussian CDF
+              <span style="font-family:'JetBrains Mono',monospace;">&Phi;(k&#8319;&delta;&nbsp;+&nbsp;h)</span>
+              &mdash; three transient coefficients per primitive and view, no learned parameters. Training through
+              the same differentiable rule lets one checkpoint serve arbitrary cuts without retraining.
             </p>
           </div>
 
@@ -270,8 +269,8 @@
     <div class="container is-max-desktop">
       <h2 class="title is-3 has-text-centered">Sweeping a Plane Through a Held-Out Volume</h2>
       <p class="content has-text-centered" style="color:#5a6478;">
-        Same scan (<code>intestine</code>, CT), same trained-checkpoint protocol, live screen recordings.
-        Watch the culled side of the plane: XClipGS keeps it empty; ClipGS leaks and flickers.
+        Live recordings on the same held-out scan (<code>intestine</code>, CT). Watch the culled side:
+        XClipGS keeps it empty; ClipGS leaks and flickers.
       </p>
       <div class="columns is-centered xc-video-cols">
         <div class="column is-half has-text-centered">
@@ -300,9 +299,8 @@
       <div class="xc-demo-cta">
         <div>
           <h3>Try the clip operators live in your browser</h3>
-          <p>A WebGL Gaussian-splatting scene with a movable plane: switch among Ours / MM / HC at render time and
-             watch hard-cull popping, the moment-matched tail, and the analytic boundary. Runs fully client-side
-             in your browser.</p>
+          <p>A WebGL splatting scene with a movable plane: switch among Ours / MM / HC live and watch hard-cull
+             popping, the moment-matched tail, and the analytic boundary. Runs fully in your browser.</p>
         </div>
         <a href="demo/" target="_blank" class="button is-link is-medium is-rounded">Launch demo &rarr;</a>
       </div>
@@ -316,8 +314,8 @@
         <div class="column is-full-width has-text-centered">
           <h2 class="title is-3">Quantitative Results</h2>
           <p class="content has-text-centered" style="color:#5a6478;">
-            Eight clinical CT/MRI volumes, plane offsets held out from training. MM and HC share our backbone and
-            supervision, isolating the operator; ClipGS is the system-level baseline.
+            Eight CT/MRI volumes, held-out plane offsets. MM and HC share our backbone, isolating the operator;
+            ClipGS is the system-level baseline.
           </p>
 
           <div class="rfm-table-wrap">
@@ -335,8 +333,8 @@
           </div>
 
           <p class="content has-text-centered" style="color:#5a6478;margin-top:2rem;">
-            Cut-face metrics score the plane where global metrics are nearly blind. XClipGS has the best average on
-            all four metrics for both plane sets &mdash; including <b>arbitrary-normal planes without retraining</b>.
+            Cut-face metrics score the plane itself. XClipGS is best on all four metrics for both plane sets
+            &mdash; including <b>arbitrary-normal planes without retraining</b>.
           </p>
 
           <div class="rfm-table-wrap">
@@ -379,9 +377,9 @@
       <h2 class="title is-3 has-text-centered">Qualitative Comparison</h2>
       <img src="static/images/qualitative.jpg" alt="Qualitative comparison on held-out clipping planes" style="width:100%;">
       <p class="content has-text-justified" style="color:#5a6478;margin-top:.8rem;">
-        Held-out clipping planes; matched cameras and crops (the middle row is an unseen arbitrary-normal grazing
-        view). XClipGS preserves cut-face structure and contrast while avoiding the diffuse or jagged boundaries of
-        the approximate operators; per-crop SSIM/PSNR shown beneath each patch.
+        Held-out planes, matched cameras and crops (middle row: an unseen arbitrary-normal grazing view).
+        XClipGS keeps cut-face structure without the diffuse or jagged boundaries of the approximations;
+        per-crop SSIM/PSNR below each patch.
       </p>
     </div>
   </section>
