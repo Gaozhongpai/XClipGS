@@ -229,13 +229,10 @@
           <h2 class="title is-3 has-text-centered">How It Works</h2>
           <img src="static/images/pipeline.png" alt="XClipGS pipeline" style="width:100%;">
           <div class="content has-text-justified" style="margin-top:1rem;">
-            <p>
-              An <b>exact per-splat clip</b> plus <b>clip-aware supervision</b>. Conditioning the jointly Gaussian
-              screen and clip coordinates on the pixel turns each straddling primitive's truncated ray integral
-              into its unclipped EWA footprint times a Gaussian CDF
+            <p class="has-text-centered" style="color:#5a6478;">
+              Each straddling splat's truncated ray integral = its unclipped EWA footprint &times; a Gaussian CDF
               <span style="font-family:'JetBrains Mono',monospace;">&Phi;(k&#8319;&delta;&nbsp;+&nbsp;h)</span>
-              &mdash; three transient coefficients per primitive and view, no learned parameters. Training through
-              the same differentiable rule lets one checkpoint serve arbitrary cuts without retraining.
+              &mdash; closed form, differentiable, no learned parameters.
             </p>
           </div>
 
@@ -243,20 +240,17 @@
             <div class="xc-op is-ours">
               <div class="tag-line">Ours &mdash; analytic</div>
               <h4>Exact half-space integral</h4>
-              <p>Renders the truncated density itself: footprint &times; conditional CDF. Sharp cut face, zero
-                 wrong-side mass by construction, hard-cull speed, and exact gradients through the cut.</p>
+              <p>Renders the truncated density itself &mdash; sharp cut, hard-cull speed, exact gradients.</p>
             </div>
             <div class="xc-op">
               <div class="tag-line">MM &mdash; surrogate</div>
               <h4>Moment-matched truncation</h4>
-              <p>Replaces each straddling splat by the best-fitting Gaussian. Smooth and trainable, but
-                 re-Gaussianization restores unbounded support &mdash; a soft tail still leaks past the plane.</p>
+              <p>Best-fitting Gaussian per straddling splat &mdash; a soft tail still leaks past the plane.</p>
             </div>
             <div class="xc-op">
               <div class="tag-line">HC &mdash; binary</div>
               <h4>Hard per-splat cull</h4>
-              <p>Keeps or drops whole primitives (the ClipGS decision class). Center-quantized boundary that
-                 overshoots, leaves holes, and pops as the plane sweeps; no gradient through the cut.</p>
+              <p>Keeps or drops whole primitives &mdash; overshoots, holes, and popping as the plane sweeps.</p>
             </div>
           </div>
         </div>
