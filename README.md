@@ -14,7 +14,8 @@ Live at: https://gaozhongpai.github.io/XClipGS/
 
 - [ ] Confirm the **author list** in `index.html` (currently copied from the Render-FM page as a placeholder).
 - [ ] The paper is under double-blind review — keep the repo/page private until the anonymity period allows posting.
-- [ ] When the arXiv preprint is up: enable the arXiv button and replace the BibTeX stub.
+- [x] arXiv preprint posted at <https://arxiv.org/abs/2608.07760>; the arXiv
+      button is live and the BibTeX entry cites it.
 
 ## Serve locally
 
